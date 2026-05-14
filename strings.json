@@ -1,5 +1,5 @@
 {
-    "title": "Lumentree Inverter",
+    "title": "Lumentree Inverter HASS",
     "config": {
         "step": {
             "user": {
@@ -74,7 +74,7 @@
     },
     "translations": {
         "vi": {
-            "title": "Lumentree Inverter",
+            "title": "Lumentree Inverter HASS",
             "config": {
                 "step": {
                     "user": {

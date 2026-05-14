@@ -1,16 +1,16 @@
 {
     "domain": "lumentree",
-    "name": "Lumentree Inverter",
+    "name": "Lumentree Inverter HASS",
     "config_flow": true,
-    "documentation": "https://github.com/ngoviet/lumentreeHA",
-    "issue_tracker": "https://github.com/ngoviet/lumentreeHA/issues",
+    "documentation": "https://github.com/nlkcodenew/LumentreeHASS",
+    "issue_tracker": "https://github.com/nlkcodenew/LumentreeHASS/issues",
     "requirements": [
         "aiohttp>=3.8.0",
         "paho-mqtt>=1.6.0",
         "crcmod>=1.7"
     ],
     "codeowners": [
-        "@ngoviet"
+        "@nlkcodenew"
     ],
     "version": "5.1.0",
     "iot_class": "cloud_polling",

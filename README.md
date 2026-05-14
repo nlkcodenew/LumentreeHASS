@@ -1,11 +1,11 @@
-# Lumentree Inverter Integration for Home Assistant
+# Lumentree Inverter HASS
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-[![GitHub release](https://img.shields.io/github/release/ngoviet/lumentreeHA.svg)](https://github.com/ngoviet/lumentreeHA/releases)
-[![GitHub stars](https://img.shields.io/github/stars/ngoviet/lumentreeHA.svg)](https://github.com/ngoviet/lumentreeHA/stargazers)
+[![GitHub release](https://img.shields.io/github/release/nlkcodenew/LumentreeHASS.svg)](https://github.com/nlkcodenew/LumentreeHASS/releases)
+[![GitHub stars](https://img.shields.io/github/stars/nlkcodenew/LumentreeHASS.svg)](https://github.com/nlkcodenew/LumentreeHASS/stargazers)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-ffdd00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/ngoviet)
 
-<a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=ngoviet&repository=lumentreeHA&category=integration" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open this repository in HACS" width="200" height="36"></a>
+<a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=nlkcodenew&repository=LumentreeHASS&category=integration" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open this repository in HACS" width="200" height="36"></a>
 
 A high-performance Home Assistant integration for Lumentree solar inverters with real-time MQTT data and daily statistics via HTTP API.
 
@@ -92,14 +92,14 @@ A high-performance Home Assistant integration for Lumentree solar inverters with
 1. Open **HACS** in Home Assistant
 2. Go to **Integrations**
 3. Click **Custom Repositories**
-4. Add repository: `https://github.com/ngoviet/lumentreeHA`
+4. Add repository: `https://github.com/nlkcodenew/LumentreeHASS`
 5. Select **Integration** category
-6. Install **Lumentree Inverter**
+6. Install **Lumentree Inverter HASS**
 7. Restart Home Assistant
 
 ### Option 2: Manual Installation
 
-1. Download the [latest release](https://github.com/ngoviet/lumentreeHA/releases)
+1. Download the [latest release](https://github.com/nlkcodenew/LumentreeHASS/releases)
 2. Extract to `custom_components/lumentree/` in your Home Assistant config
 3. Restart Home Assistant
 
@@ -109,7 +109,7 @@ A high-performance Home Assistant integration for Lumentree solar inverters with
 
 1. Go to **Configuration** → **Integrations**
 2. Click **Add Integration**
-3. Search for **Lumentree Inverter**
+3. Search for **Lumentree Inverter HASS**
 4. Enter your **Device ID** (found on device label or mobile app)
 5. Follow the setup wizard
 6. Confirm device information
@@ -336,9 +336,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **GitHub Issues**: [Report problems](https://github.com/ngoviet/lumentreeHA/issues)
-- **Discussions**: [Community discussions](https://github.com/ngoviet/lumentreeHA/discussions)
-- **Documentation**: [Full documentation](https://github.com/ngoviet/lumentreeHA)
+- **GitHub Issues**: [Report problems](https://github.com/nlkcodenew/LumentreeHASS/issues)
+- **Discussions**: [Community discussions](https://github.com/nlkcodenew/LumentreeHASS/discussions)
+- **Documentation**: [Full documentation](https://github.com/nlkcodenew/LumentreeHASS)
 - **☕ Buy Me A Coffee**: [Support this project](https://buymeacoffee.com/ngoviet)
 
 ## 📊 Changelog
