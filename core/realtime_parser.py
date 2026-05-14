@@ -276,6 +276,7 @@ def _parse_battery_cells(db: bytes) -> Optional[Dict[str, Any]]:
         diff = round(max_voltage - min_voltage, 3) if num_cells > 1 else 0.0
         result = {
             "num": num_cells,
+            "number_of_cells": num_cells,
             "avg": avg,
             "min": min_voltage if min_voltage != 999.0 else None,
             "max": max_voltage if max_voltage != 0.0 else None,
@@ -286,7 +287,8 @@ def _parse_battery_cells(db: bytes) -> Optional[Dict[str, Any]]:
             _LOGGER.debug("Parsed cells: %s", result)
         return result
     else:
-        _LOGGER.warning("No valid cells found")
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug("No valid battery cells found in MQTT response")
         return None
 
 
@@ -409,6 +411,13 @@ def parse_mqtt_payload(ph: str) -> Optional[Dict[str, Any]]:
             cell_result = _parse_battery_cells(db)
             if cell_result:
                 parsed_data[KEY_BATTERY_CELL_INFO] = cell_result
+            else:
+                if _LOGGER.isEnabledFor(logging.DEBUG):
+                    _LOGGER.debug(
+                        "Battery cell response contained no valid cell voltages: %s...",
+                        resp_hex[:60] if resp_hex else "N/A",
+                    )
+                return None
         else:
             # Parse main registers with optimized read helper (module-level function)
             rr = _make_reader(db, REG_ADDR)
@@ -564,4 +573,3 @@ def parse_mqtt_payload(ph: str) -> Optional[Dict[str, Any]]:
     else:
         _LOGGER.warning(f"No data parsed from: {resp_hex[:60] if resp_hex else 'N/A'}...")
         return None
-
