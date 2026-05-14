@@ -103,14 +103,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # before backfill has populated it
         async def _prime_coordinators_staggered():
             try:
-                await daily_coord.async_config_entry_first_refresh()
+                await daily_coord.async_refresh()
             except Exception as e:
                 _LOGGER.warning("Daily coordinator first refresh failed: %s", e)
             # Give backfill time to populate cache, then refresh stats coordinators
             await asyncio.sleep(10)
-            hass.async_create_task(monthly_coord.async_config_entry_first_refresh())
-            hass.async_create_task(yearly_coord.async_config_entry_first_refresh())
-            hass.async_create_task(total_coord.async_config_entry_first_refresh())
+            results = await asyncio.gather(
+                monthly_coord.async_refresh(),
+                yearly_coord.async_refresh(),
+                total_coord.async_refresh(),
+                return_exceptions=True,
+            )
+            for name, result in zip(("Monthly", "Yearly", "Total"), results):
+                if isinstance(result, Exception):
+                    _LOGGER.warning("%s coordinator refresh failed: %s", name, result)
 
         hass.async_create_task(_prime_coordinators_staggered())
 
