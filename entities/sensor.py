@@ -670,6 +670,7 @@ class LumentreeMqttSensor(SensorEntity, RestoreEntity):
         "_attr_device_info",
         "_remove_dispatcher",
         "_attr_native_value",
+        "_attr_extra_state_attributes",
     )
 
     _attr_should_poll = False
@@ -693,6 +694,7 @@ class LumentreeMqttSensor(SensorEntity, RestoreEntity):
         self.entity_id = generate_entity_id("sensor.{}", self._attr_object_id, hass=hass)
         self._attr_device_info = device_info
         self._remove_dispatcher: Optional[Callable[[], None]] = None
+        self._attr_extra_state_attributes: Dict[str, Any] = {}
         self._attr_native_value = self._process_value(initial_data.get(description.key))
 
         if _LOGGER.isEnabledFor(logging.DEBUG):
@@ -732,6 +734,42 @@ class LumentreeMqttSensor(SensorEntity, RestoreEntity):
                     processed_value = processed_value[:252] + "..."
         return processed_value
 
+    def _update_raw_mqtt_attributes(self, raw_hex: Any) -> bool:
+        """Store full raw MQTT payload details as attributes for diagnostics."""
+        if self.entity_description.key != KEY_LAST_RAW_MQTT or raw_hex is None:
+            return False
+
+        raw_text = str(raw_hex)
+        request_hex = None
+        response_hex = None
+        response_byte_count = None
+
+        separator = "2b2b2b2b"
+        if separator in raw_text:
+            request_hex, response_hex = raw_text.split(separator, 1)
+        else:
+            response_hex = raw_text
+
+        if response_hex and len(response_hex) >= 6:
+            try:
+                response_byte_count = int(response_hex[4:6], 16)
+            except ValueError:
+                response_byte_count = None
+
+        new_attrs = {
+            "full_raw_mqtt_hex": raw_text,
+            "raw_hex_length": len(raw_text),
+            "request_hex": request_hex,
+            "response_hex": response_hex,
+            "response_hex_length": len(response_hex) if response_hex else 0,
+            "response_byte_count": response_byte_count,
+        }
+        if self._attr_extra_state_attributes == new_attrs:
+            return False
+
+        self._attr_extra_state_attributes = new_attrs
+        return True
+
     @callback
     def _handle_update(self, data: Dict[str, Any]) -> None:
         """Handle update from dispatcher."""
@@ -739,8 +777,9 @@ class LumentreeMqttSensor(SensorEntity, RestoreEntity):
         if key == KEY_BATTERY_CELL_INFO:
             return
         if key in data:
+            attrs_changed = self._update_raw_mqtt_attributes(data[key])
             new_value = self._process_value(data[key])
-            if self._attr_native_value != new_value:
+            if self._attr_native_value != new_value or attrs_changed:
                 self._attr_native_value = new_value
                 self.async_write_ha_state()
                 if _LOGGER.isEnabledFor(logging.DEBUG):
