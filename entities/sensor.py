@@ -63,6 +63,7 @@ from ..const import (
     KEY_MASTER_SLAVE_STATUS,
     KEY_MQTT_DEVICE_SN,
     KEY_BATTERY_CELL_INFO,
+    KEY_RAW_MQTT_REGISTERS,
     KEY_DAILY_PV_KWH,
     KEY_DAILY_CHARGE_KWH,
     KEY_DAILY_DISCHARGE_KWH,
@@ -316,6 +317,13 @@ REALTIME_SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         key=KEY_LAST_RAW_MQTT,
         name="Last Raw MQTT Hex",
         icon="mdi:text-hexadecimal",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    SensorEntityDescription(
+        key=KEY_RAW_MQTT_REGISTERS,
+        name="Raw MQTT Registers",
+        icon="mdi:counter",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
@@ -602,6 +610,10 @@ async def async_setup_entry(
             entities_to_add.append(
                 LumentreeBatteryCellSensor(hass, entry, device_info, description, {})
             )
+        elif description.key == KEY_RAW_MQTT_REGISTERS:
+            entities_to_add.append(
+                LumentreeRawMqttRegistersSensor(hass, entry, device_info, description, {})
+            )
         elif description.key == KEY_TOTAL_LOAD_POWER:
             entities_to_add.append(
                 LumentreeTotalLoadPowerSensor(hass, entry, device_info, description, {})
@@ -806,6 +818,88 @@ class LumentreeMqttSensor(SensorEntity, RestoreEntity):
             self._remove_dispatcher = None
         if _LOGGER.isEnabledFor(logging.DEBUG):
             _LOGGER.debug("MQTT sensor %s unregistered", self.unique_id)
+
+
+class LumentreeRawMqttRegistersSensor(SensorEntity, RestoreEntity):
+    """Diagnostic entity exposing the full decoded MQTT register frame."""
+
+    __slots__ = (
+        "hass",
+        "entity_description",
+        "_device_sn",
+        "_attr_unique_id",
+        "_attr_object_id",
+        "entity_id",
+        "_attr_device_info",
+        "_attr_extra_state_attributes",
+        "_remove_dispatcher",
+        "_attr_native_value",
+    )
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        device_info: DeviceInfo,
+        description: SensorEntityDescription,
+        initial_data: Dict[str, Any],
+    ) -> None:
+        """Initialize raw MQTT register diagnostics sensor."""
+        self.hass = hass
+        self.entity_description = description
+        self._device_sn = entry.data[CONF_DEVICE_SN]
+        self._attr_unique_id = f"{self._device_sn}_{description.key}"
+        object_id = f"device_{self._device_sn}_{slugify(description.key)}"
+        self._attr_object_id = object_id
+        self.entity_id = generate_entity_id("sensor.{}", self._attr_object_id, hass=hass)
+        self._attr_device_info = device_info
+        self._attr_extra_state_attributes: Dict[str, Any] = {}
+        self._remove_dispatcher: Optional[Callable[[], None]] = None
+        self._attr_native_value = None
+
+        initial_registers = initial_data.get(KEY_RAW_MQTT_REGISTERS)
+        if isinstance(initial_registers, dict):
+            self._update_registers(initial_registers)
+
+    def _update_registers(self, registers: Dict[str, Any]) -> bool:
+        """Update state and attributes from raw register diagnostics."""
+        new_state = registers.get("register_count")
+        new_attrs = dict(registers)
+        if (
+            self._attr_native_value == new_state
+            and self._attr_extra_state_attributes == new_attrs
+        ):
+            return False
+
+        self._attr_native_value = new_state
+        self._attr_extra_state_attributes = new_attrs
+        return True
+
+    @callback
+    def _handle_update(self, data: Dict[str, Any]) -> None:
+        """Handle raw register diagnostics update from dispatcher."""
+        registers = data.get(KEY_RAW_MQTT_REGISTERS)
+        if isinstance(registers, dict) and self._update_registers(registers):
+            self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Register dispatcher connection."""
+        await super().async_added_to_hass()
+        signal = SIGNAL_UPDATE_FORMAT.format(device_sn=self._device_sn)
+        self._remove_dispatcher = async_dispatcher_connect(self.hass, signal, self._handle_update)
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug("Raw MQTT registers sensor %s registered", self.unique_id)
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Unregister dispatcher connection."""
+        if self._remove_dispatcher:
+            self._remove_dispatcher()
+            self._remove_dispatcher = None
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug("Raw MQTT registers sensor %s unregistered", self.unique_id)
 
 
 class LumentreeBatteryCellSensor(SensorEntity, RestoreEntity):

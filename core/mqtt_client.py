@@ -29,11 +29,16 @@ from ..const import (
     MQTT_KEEPALIVE,
     KEY_ONLINE_STATUS,
     KEY_LAST_RAW_MQTT,
+    KEY_RAW_MQTT_REGISTERS,
     DEFAULT_POLLING_INTERVAL,
     REG_ADDR_CELL_START,
     REG_ADDR_CELL_COUNT,
 )
-from .modbus_parser import parse_mqtt_payload, generate_modbus_read_command
+from .modbus_parser import (
+    extract_mqtt_register_diagnostics,
+    generate_modbus_read_command,
+    parse_mqtt_payload,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -409,6 +414,9 @@ class LumentreeMqttClient:
                         parsed_data[KEY_LAST_RAW_MQTT] = payload_hex
                     except NameError:
                         pass
+                    raw_registers = extract_mqtt_register_diagnostics(payload_hex)
+                    if raw_registers:
+                        parsed_data[KEY_RAW_MQTT_REGISTERS] = raw_registers
 
                     # Use batch update instead of immediate dispatch
                     self.hass.loop.call_soon_threadsafe(self._queue_update, parsed_data)
@@ -531,4 +539,3 @@ class LumentreeMqttClient:
         else:
             if _LOGGER.isEnabledFor(logging.DEBUG):
                 _LOGGER.debug("MQTT client already None %s", self._client_id)
-

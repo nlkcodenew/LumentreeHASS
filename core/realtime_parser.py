@@ -240,6 +240,82 @@ def _read_string(db: bytes, sa: int, nr: int) -> Optional[str]:
         return None
 
 
+def extract_mqtt_register_diagnostics(ph: str) -> Optional[Dict[str, Any]]:
+    """Extract full raw MQTT Modbus register diagnostics from a payload."""
+    if not ph:
+        return None
+
+    request_hex = None
+    response_hex = None
+    sep = "2b2b2b2b"
+    if sep in ph:
+        parts = ph.split(sep, 1)
+        request_hex = parts[0]
+        response_hex = parts[1] if len(parts) > 1 else None
+    elif ph.startswith("0103") or ph.startswith("0104"):
+        response_hex = ph
+
+    if not response_hex or len(response_hex) < 10:
+        return None
+
+    try:
+        slave_id = int(response_hex[0:2], 16)
+        function_code = int(response_hex[2:4], 16)
+        byte_count = int(response_hex[4:6], 16)
+        data_hex = response_hex[6:-4]
+        crc_hex = response_hex[-4:]
+        data = bytes.fromhex(data_hex)
+    except (ValueError, TypeError):
+        return None
+
+    if byte_count != len(data) or len(data) % 2 != 0:
+        return None
+
+    register_count = len(data) // 2
+    if function_code != 3 or register_count != 95:
+        return None
+
+    crc_ok, crc_error = verify_crc(response_hex)
+    register_hex: list[str] = []
+    register_uint: list[int] = []
+    register_int: list[int] = []
+    for idx in range(register_count):
+        raw = data[idx * 2 : idx * 2 + 2]
+        register_hex.append(raw.hex())
+        register_uint.append(int.from_bytes(raw, "big", signed=False))
+        register_int.append(int.from_bytes(raw, "big", signed=True))
+
+    named_registers: dict[str, dict[str, Any]] = {}
+    for name, idx in REG_ADDR.items():
+        if idx < register_count:
+            named_registers[name] = {
+                "register": idx,
+                "hex": register_hex[idx],
+                "uint": register_uint[idx],
+                "int": register_int[idx],
+            }
+
+    return {
+        "register_count": register_count,
+        "raw_mqtt_hex": ph,
+        "raw_hex_length": len(ph),
+        "request_hex": request_hex,
+        "response_hex": response_hex,
+        "response_hex_length": len(response_hex),
+        "slave_id": slave_id,
+        "function_code": function_code,
+        "byte_count": byte_count,
+        "crc_hex": crc_hex,
+        "crc_ok": crc_ok,
+        "crc_error": crc_error,
+        "register_hex": register_hex,
+        "register_uint": register_uint,
+        "register_int": register_int,
+        "named_registers": named_registers,
+        "device_sn": _read_string(data, REG_ADDR["DEVICE_MODEL_START"], 5),
+    }
+
+
 def _parse_battery_cells(db: bytes) -> Optional[Dict[str, Any]]:
     """Parse battery cell voltages.
 
@@ -475,8 +551,7 @@ def parse_mqtt_payload(ph: str) -> Optional[Dict[str, Any]]:
                 parsed_data[KEY_GRID_POWER] = grid_p
 
             # AC input power
-            ac_in_p_raw = rr("AC_IN_POWER", False)
-            ac_in_p = round(ac_in_p_raw / 100, 2) if ac_in_p_raw is not None else None
+            ac_in_p = rr("AC_IN_POWER", True)
             if ac_in_p is not None:
                 parsed_data[KEY_AC_IN_POWER] = ac_in_p
 

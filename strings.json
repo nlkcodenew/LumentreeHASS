@@ -65,7 +65,8 @@
             "beep_mode": { "name": "Beep Mode" },
             "backlight_mode": { "name": "Backlight Mode" },
             "mqtt_device_sn": { "name": "Device SN (MQTT)" },
-            "battery_cell_info": { "name": "Battery Cell Info" }
+            "battery_cell_info": { "name": "Battery Cell Info" },
+            "raw_mqtt_registers": { "name": "Raw MQTT Registers" }
         },
         "binary_sensor": {
             "online_status": { "name": "Online Status" },
@@ -140,7 +141,8 @@
                     "beep_mode": { "name": "Chế độ Bíp" },             
                     "backlight_mode": { "name": "Chế độ Đèn nền" },    
                     "mqtt_device_sn": { "name": "SN Thiết bị (MQTT)" },
-                    "battery_cell_info": { "name": "Thông tin Cell Pin" }
+                    "battery_cell_info": { "name": "Thông tin Cell Pin" },
+                    "raw_mqtt_registers": { "name": "Thanh ghi MQTT thô" }
                  },
                 "binary_sensor": {
                     "online_status": { "name": "Trạng thái Online" },

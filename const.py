@@ -134,6 +134,7 @@ KEY_DAILY_LOAD_KWH: Final = "load_today"
 KEY_DAILY_TOTAL_LOAD_KWH: Final = "total_load_today"
 KEY_TOTAL_LOAD_POWER: Final = "total_load_power"
 KEY_LAST_RAW_MQTT: Final = "last_raw_mqtt_hex"
+KEY_RAW_MQTT_REGISTERS: Final = "raw_mqtt_registers"
 
 # --- Statistics Keys (Daily / Monthly / Yearly) ---
 # Daily totals already defined above; extend with essential load
@@ -193,4 +194,3 @@ ATTR_SAVINGS_VND: Final = "savings_vnd"
 # --- Mappings for Modes ---
 
 MAP_BATTERY_TYPE: Final = {2: "No Battery"}
-

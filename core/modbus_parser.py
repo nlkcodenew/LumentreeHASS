@@ -9,6 +9,7 @@ from .realtime_parser import (
     calculate_crc16_modbus,
     verify_crc,
     generate_modbus_read_command,
+    extract_mqtt_register_diagnostics,
     parse_mqtt_payload,
 )
 
@@ -16,5 +17,6 @@ __all__ = [
     "calculate_crc16_modbus",
     "verify_crc",
     "generate_modbus_read_command",
+    "extract_mqtt_register_diagnostics",
     "parse_mqtt_payload",
 ]
