@@ -672,6 +672,17 @@ async def async_setup_entry(
 class LumentreeMqttSensor(SensorEntity, RestoreEntity):
     """MQTT sensor entity."""
 
+    _unrecorded_attributes = frozenset(
+        {
+            "full_raw_mqtt_hex",
+            "raw_hex_length",
+            "request_hex",
+            "response_hex",
+            "response_hex_length",
+            "response_byte_count",
+        }
+    )
+
     __slots__ = (
         "hass",
         "entity_description",
@@ -822,6 +833,20 @@ class LumentreeMqttSensor(SensorEntity, RestoreEntity):
 
 class LumentreeRawMqttRegistersSensor(SensorEntity, RestoreEntity):
     """Diagnostic entity exposing the full decoded MQTT register frame."""
+
+    _unrecorded_attributes = frozenset(
+        {
+            "raw_mqtt_hex",
+            "raw_hex_length",
+            "request_hex",
+            "response_hex",
+            "response_hex_length",
+            "register_hex",
+            "register_uint",
+            "register_int",
+            "named_registers",
+        }
+    )
 
     __slots__ = (
         "hass",
