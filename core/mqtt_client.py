@@ -159,9 +159,7 @@ class LumentreeMqttClient:
 
             if self._pending_updates:
                 # Send all updates at once
-                async_dispatcher_send(
-                    self.hass, self._signal_update, self._pending_updates.copy()
-                )
+                self._dispatch_update(self._pending_updates.copy())
                 self._pending_updates.clear()
 
                 if _LOGGER.isEnabledFor(logging.DEBUG):
@@ -169,14 +167,17 @@ class LumentreeMqttClient:
         except asyncio.CancelledError:
             # Timer cancelled, send remaining updates
             if self._pending_updates:
-                async_dispatcher_send(
-                    self.hass, self._signal_update, self._pending_updates.copy()
-                )
+                self._dispatch_update(self._pending_updates.copy())
                 self._pending_updates.clear()
         except Exception as exc:
             _LOGGER.error(f"Error in batch update processing: {exc}")
         finally:
             self._batch_timer = None
+
+    @callback
+    def _dispatch_update(self, data: Dict[str, Any]) -> None:
+        """Dispatch an update from the Home Assistant event loop."""
+        async_dispatcher_send(self.hass, self._signal_update, data)
 
     def _queue_update(self, data: Dict[str, Any]) -> None:
         """Add update to queue for batch processing.
@@ -186,13 +187,10 @@ class LumentreeMqttClient:
         """
         self._pending_updates.update(data)
 
-        # Start timer if not already running
-        # Schedule batch timer from event loop (thread-safe)
-        # This method is called from MQTT callback thread via call_soon_threadsafe
+        # Start timer if not already running.
+        # This method must run in the Home Assistant event loop.
         if self._batch_timer is None:
-            self.hass.loop.call_soon_threadsafe(
-                lambda: self.hass.async_create_task(self._start_batch_timer())
-            )
+            self.hass.async_create_task(self._start_batch_timer())
 
     @callback
     def _set_offline(self, *args) -> None:
@@ -201,7 +199,7 @@ class LumentreeMqttClient:
         self._cancel_offline_timer()
         if self._online:
             self._online = False
-            async_dispatcher_send(self.hass, self._signal_update, {KEY_ONLINE_STATUS: False})
+            self._dispatch_update({KEY_ONLINE_STATUS: False})
 
     def _start_offline_timer(self) -> None:
         """Start or restart the offline timer."""
@@ -324,6 +322,11 @@ class LumentreeMqttClient:
             rc: Disconnection result code
             properties: Disconnect properties (MQTT v5)
         """
+        self.hass.loop.call_soon_threadsafe(self._handle_disconnect, rc)
+
+    @callback
+    def _handle_disconnect(self, rc: int) -> None:
+        """Handle MQTT disconnect from the Home Assistant event loop."""
         self._is_connected = False
         self._cancel_offline_timer()
         self._set_offline()
@@ -354,9 +357,7 @@ class LumentreeMqttClient:
         else:
             _LOGGER.error(f"MQTT reconnection failed {self._client_id}")
             self.hass.loop.call_soon_threadsafe(
-                async_dispatcher_send,
-                self.hass,
-                self._signal_update,
+                self._dispatch_update,
                 {"error": "MQTT_reconnect_failed"},
             )
 
@@ -403,12 +404,6 @@ class LumentreeMqttClient:
                     if _LOGGER.isEnabledFor(logging.DEBUG):
                         _LOGGER.debug("Parsed data %s: %s", self._client_id, parsed_data)
 
-                    # Update online status and reset timer
-                    if not self._online:
-                        self._online = True
-                        parsed_data[KEY_ONLINE_STATUS] = True
-                    self._start_offline_timer()
-
                     # Add raw hex data
                     try:
                         parsed_data[KEY_LAST_RAW_MQTT] = payload_hex
@@ -418,12 +413,25 @@ class LumentreeMqttClient:
                     if raw_registers:
                         parsed_data[KEY_RAW_MQTT_REGISTERS] = raw_registers
 
-                    # Use batch update instead of immediate dispatch
-                    self.hass.loop.call_soon_threadsafe(self._queue_update, parsed_data)
+                    self.hass.loop.call_soon_threadsafe(
+                        self._handle_parsed_data, parsed_data
+                    )
             else:
                 _LOGGER.warning(f"Unexpected topic {self._client_id}: {topic}")
         except Exception as exc:
             _LOGGER.exception(f"Error processing MQTT message {topic} {self._client_id}")
+
+    @callback
+    def _handle_parsed_data(self, parsed_data: Dict[str, Any]) -> None:
+        """Handle parsed MQTT data from the Home Assistant event loop."""
+        # Update online status and reset timer.
+        if not self._online:
+            self._online = True
+            parsed_data[KEY_ONLINE_STATUS] = True
+        self._start_offline_timer()
+
+        # Use batch update instead of immediate dispatch.
+        self._queue_update(parsed_data)
 
     async def _publish_command(self, command_hex: str) -> bool:
         """Internal helper to publish a hex command.
